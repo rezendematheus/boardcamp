@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from 'dotenv';
 import gamesRoutes from "./routes/games.routes.js";
 import customerRoutes from "./routes/customers.routes.js";
+import rentalRoutes from "./routes/rental.routes.js";
 
 dotenv.config()
 
@@ -11,7 +12,7 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
-app.use([gamesRoutes, customerRoutes])
+app.use([gamesRoutes, customerRoutes, rentalRoutes])
 
 const port = process.env.PORT || 5000
 
