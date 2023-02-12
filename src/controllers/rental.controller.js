@@ -89,19 +89,63 @@ export async function insertRental(req, res) {
 
 export async function finishRental(req, res) {
     try {
-        const {id} = req.params
-        
 
-        return res.send(params)
+        const {id} = req.params
+        const rentalQuery = await db.query(`
+            SELECT rentals.*, TO_CHAR(rentals."rentDate", 'YYYY-MM-DD') AS "rentDate"
+            FROM rentals WHERE id=${id}
+        `)
+        if(!rentalQuery.rows[0]) return res.status(404).send()
+
+        const dailyFine = 1500
+        const {rentDate, daysRented, originalPrice, delayFee} = rentalQuery.rows[0]
+
+        const expectedReturn = dayjs(rentDate).add(daysRented, 'day').format('YYYY-MM-DD')
+        const dateNow= dayjs().format('YYYY-MM-DD')
+
+        const delay = dayjs(dateNow).diff(dayjs(expectedReturn), 'd')
+
+        delayFee = 0
+        if(delay >= 1){
+            delayFee = delay*1500
+        }
+        
+        await db.query(`
+            UPDATE rentals
+            SET "returnDate" = '${dateNow}', "delayFee"= ${delayFee}
+            WHERE id=${id}
+        `)
+        return res.send()
     } catch (error) {
+        console.log(error)
         res.status(500).send(error)
     }
 }
 
 export async function deleteRental(req, res) {
     try {
-        
+        const {id} = req.params;
+
+        const rentalExist = await db.query(`
+            SELECT *
+            FROM rentals
+            WHERE id=$1
+        `, [id])
+
+        if(!rentalExist.rows[0]) return res.status(404).send()
+
+        if(!rentalExist.rows[0].returnDate) return res.status(400).send()
+    
+        await db.query(`
+            DELETE
+            FROM rentals
+            WHERE id=$1
+        `,[id])
+
+        res.send(rentalExist.rows[0].returnDate)
+
     } catch (error) {
+        console.log(error)
         res.status(500).send(error)
     }
 }
