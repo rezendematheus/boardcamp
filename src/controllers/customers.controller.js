@@ -50,10 +50,10 @@ export async function updateCustomer(req, res) {
         console.log(customer.rows)
         if (!customer.rows) res.status(404).send('customer not found')
 
-        if (customer.rows[0].cpf !== cpf) {
+        if (customer.rows[0].cpf != cpf) {
             const customerByCpf = await db.query(`SELECT * FROM customers WHERE cpf=$1`, [cpf])
             
-            if (customerByCpf.rows) return res.status(409).send()
+            if (customerByCpf.rows ) return res.status(409).send()
         }
 
         await db.query(`UPDATE customers SET name='${name}', phone='${phone}', cpf='${cpf}', birthday='${birthday}' WHERE id=$1`, [id])

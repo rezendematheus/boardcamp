@@ -6,13 +6,13 @@ export async function getRentals(req, res) {
         const rentals = await db.query(`
             SELECT json_build_object(
                 'id', rentals.id,
-                'customer_id', rentals."customerId",
-                'game_id', rentals."gameId",
-                'rent_date', rentals."rentDate",
-                'days_rented', rentals."daysRented",
-                'return_date', rentals."returnDate",
-                'original_price', rentals."originalPrice",
-                'delay_fee', rentals."delayFee",
+                'customerId', rentals."customerId",
+                'gameId', rentals."gameId",
+                'rentDate', rentals."rentDate",
+                'daysRented', rentals."daysRented",
+                'returnDate', rentals."returnDate",
+                'originalPrice', rentals."originalPrice",
+                'delayFee', rentals."delayFee",
                 'customer', json_build_object(
                     'id', customers.id,
                     'name', customers.name
@@ -41,8 +41,6 @@ export async function insertRental(req, res) {
 
         const dateNow = dayjs().format('YYYY-MM-DD')
 
-        // return res.send(typeof dateNow)
-
         const query = await db.query(`
             SELECT json_build_object(
                 'customer_name', customers.name,
@@ -62,9 +60,6 @@ export async function insertRental(req, res) {
 
         if(!(game_stock >= 1) || !customer_name || !game_name) return res.status(400).send()
 
-        //customer, game
-        //'{"id": ${customerId}, "name": ${customer_name}}'::json, 
-        //'{"id": ${gameId}, "name": ${game_name}}'::json )
         const rental = await db.query(`
             INSERT INTO rentals
                 ("customerId", "gameId","rentDate","daysRented","returnDate","originalPrice","delayFee")
@@ -98,7 +93,7 @@ export async function finishRental(req, res) {
         if(!rentalQuery.rows[0]) return res.status(404).send()
 
         const dailyFine = 1500
-        const {rentDate, daysRented, originalPrice, delayFee} = rentalQuery.rows[0]
+        const {rentDate, daysRented, delayFee} = rentalQuery.rows[0]
 
         const expectedReturn = dayjs(rentDate).add(daysRented, 'day').format('YYYY-MM-DD')
         const dateNow= dayjs().format('YYYY-MM-DD')
@@ -107,7 +102,7 @@ export async function finishRental(req, res) {
 
         delayFee = 0
         if(delay >= 1){
-            delayFee = delay*1500
+            delayFee = delay*dailyFine
         }
         
         await db.query(`
