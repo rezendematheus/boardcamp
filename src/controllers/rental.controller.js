@@ -48,10 +48,12 @@ export async function insertRental(req, res) {
                 'game_price', games."pricePerDay",
                 'game_stock', games."stockTotal"
             )
-            FROM customers 
+            FROM rentals 
             JOIN games
               ON games.id=${gameId}
-            WHERE customers.id=${customerId}
+            JOIN customers
+              ON customers.id=${customerId}
+            limit 1
         `)
 
         if(!query.rows[0]) return res.status(400).send()
@@ -77,11 +79,11 @@ export async function insertRental(req, res) {
         
         await db.query(`
             UPDATE games
-            SET games."stockTotal" = ${game_stock - 1}
-            WHERE games.id=${gameId}
-        `)
+            SET "stockTotal" = "stockTotal" - 1
+            WHERE games.id=$1
+        `, [gameId])
 
-        res.status(201).send(rental)
+        res.status(201).send()
     } catch (error) {
         console.log(error)
         res.status(500).send(error)
@@ -122,7 +124,7 @@ export async function finishRental(req, res) {
         `)
         await db.query(`
             UPDATE games
-            SET games."stockTotal" = ${stockTotal + 1}
+            SET "stockTotal" = "stockTotal" + 1
             WHERE games.id=${gameId}
         `)
 
