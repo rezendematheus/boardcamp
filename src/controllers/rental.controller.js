@@ -48,14 +48,12 @@ export async function insertRental(req, res) {
                 'game_price', games."pricePerDay",
                 'game_stock', games."stockTotal"
             )
-            FROM rentals 
+            FROM customers 
             JOIN games
               ON games.id=${gameId}
-            JOIN customers
-              ON customers.id=${customerId}
-            limit 1
+            WHERE customers.id=${customerId}
         `)
-
+                
         if(!query.rows[0]) return res.status(400).send()
 
         const {customer_name, game_name, game_price, game_stock} = query.rows[0].json_build_object
