@@ -75,6 +75,12 @@ export async function insertRental(req, res) {
                 )
         `)
         
+        await db.query(`
+            UPDATE games
+            SET games."stockTotal" = ${game_stock - 1}
+            WHERE games.id=${gameId}
+        `)
+
         res.status(201).send(rental)
     } catch (error) {
         console.log(error)
@@ -87,14 +93,17 @@ export async function finishRental(req, res) {
 
         const {id} = req.params
         const rentalQuery = await db.query(`
-            SELECT rentals.*, TO_CHAR(rentals."rentDate", 'YYYY-MM-DD') AS "rentDate"
-            FROM rentals WHERE id=${id}
+            SELECT rentals.*, TO_CHAR(rentals."rentDate", 'YYYY-MM-DD') AS "rentDate", games."pricePerDay", games."stockTotal"
+            FROM rentals
+            JOIN games
+              ON games.id = rentals."gameId"
+            WHERE rentals.id=${id}
         `)
         
         if(!rentalQuery.rows[0]) return res.status(404).send()
+        if(rentalQuery.rows[0].returnDate) return res.status(400).send()
 
-        const dailyFine = 1500
-        const {rentDate, daysRented} = rentalQuery.rows[0]
+        const {rentDate, daysRented, pricePerDay, stockTotal, gameId} = rentalQuery.rows[0] 
 
         const expectedReturn = dayjs(rentDate).add(daysRented, 'day').format('YYYY-MM-DD')
         const dateNow= dayjs().format('YYYY-MM-DD')
@@ -103,7 +112,7 @@ export async function finishRental(req, res) {
 
         let delayFee = 0
         if(delay >= 1){
-            delayFee = delay*dailyFine
+            delayFee = delay*pricePerDay
         }
         
         await db.query(`
@@ -111,6 +120,12 @@ export async function finishRental(req, res) {
             SET "returnDate" = '${dateNow}', "delayFee"= ${delayFee}
             WHERE id=${id}
         `)
+        await db.query(`
+            UPDATE games
+            SET games."stockTotal" = ${stockTotal + 1}
+            WHERE games.id=${gameId}
+        `)
+
         return res.send()
     } catch (error) {
         console.log(error)
@@ -130,7 +145,7 @@ export async function deleteRental(req, res) {
 
         if(!rentalExist.rows[0]) return res.status(404).send()
 
-        if(!rentalExist.rows[0].returnDate === null) return res.status(400).send()
+        if(!rentalExist.rows[0].returnDate) return res.status(400).send()
         
         await db.query(`
             DELETE
